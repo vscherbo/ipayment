@@ -1,0 +1,19 @@
+MAILDIR=$HOME/automail
+LOGFILE=$HOME/procmaillog
+LOGABSTRACT=no
+VERBOSE=on   #используется только для отладки
+#VERBOSE=off
+
+:0 
+* ^From.*no-reply@platron.ru
+* ^X-Merchant-ID: 4518
+* ^X-Registry-Date
+{
+  :0 B
+  * filename=.*UTF-8
+  {
+  :0 wB
+   | ripmime -i - -d /home/ARC/scherbova/automail/platron --no-nameless --overwrite --paranoid 
+  }
+}
+
