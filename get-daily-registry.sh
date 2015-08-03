@@ -50,15 +50,19 @@ pushd $CSV_DIR
 
 > $PG_COPY_SCRIPT
 IMPORT='NO'
+IFS_BCK=$IFS
+IFS=$'\n'
 #3. Prepare COPY commands for PG
-for csv in `ls -1 registry*csv`
+REGS_LIST=`ls -1 registry*csv`
+logmsg INFO "REGS_LIST=$REGS_LIST"
+for csv in $REGS_LIST
 do
   # import files containing not only header 
   # input file doesn't contain CR on the last line. Use grep+wc
   ROWS=`grep -v currency $csv | wc -l`
   if [ $ROWS -gt 0 ]
   then 
-     logmsg INFO "CSV file contains $ROWS rows. Prepare \\COPY command to load CSV into PG"
+     logmsg INFO "CSV file $csv contains $ROWS rows. Prepare \\COPY command to load CSV into PG"
      # PG follows the SQL standard - decimal dot as the delimiter 
      csv_name=`namename $csv`
      PG_CSV=$CSV_DATA/$csv_name-DOT.csv
@@ -67,11 +71,11 @@ do
      echo "\COPY inetpayments FROM '"$PG_CSV"' WITH ( FORMAT CSV, HEADER true, DELIMITER ';') ;" >> $PG_COPY_SCRIPT
      IMPORT='YES'
   else
-     logmsg INFO "The registry contains only header row. Skip it, just archive"
+     logmsg INFO "The registry $csv contains only header row. Skip it, just archive"
      $DO mv  registry*.csv  $CSV_ARCH/
   fi
 done
-
+IFS=$IFS_BCK
 
 #4. Import registry into PG
 # use ~/.pgpass
@@ -83,13 +87,13 @@ then
 
    $DO psql --set ON_ERROR_STOP=on -h $PG_SRV -U arc_energo -d arc_energo -w -f $PG_COPY_SCRIPT
    RC_IMP=$?
-   logmsg $RC_IMP "Import of the Platron registry finished."
+   logmsg $RC_IMP "The Platron registry($PG_COPY_SCRIPT) imported."
 
    #4. Link registry with Bills and SET inetamount
    if [ $RC_IMP -eq 0 ]
    then 
-       logmsg INFO "CSV successfully loaded into $PG_SRV. Try UPDATE Счета table"
-       $DO psql -h $PG_SRV -U arc_energo -d arc_energo -w -c "UPDATE Счета SET inetamount = inetpayments.to_pay, Сообщение = 't', inetdt = inetpayments.op_date + inetpayments.op_time FROM inetpayments WHERE ИнтернетЗаказ = inetpayments.order_id AND Интернет = 't' AND Оплачен = 'f' AND inetamount IS NULL;" 
+      logmsg INFO "CSV successfully loaded into $PG_SRV. Try UPDATE Счета table"
+      $DO psql -h $PG_SRV -U arc_energo -d arc_energo -w -c "UPDATE Счета SET inetamount = inetpayments.to_pay, Сообщение = 't', inetdt = inetpayments.op_date + inetpayments.op_time FROM inetpayments WHERE ИнтернетЗаказ = inetpayments.order_id AND Интернет = 't' AND Оплачен = 'f' AND inetamount IS NULL;" 
       RC_LINK=$?
       logmsg $RC_LINK "Linking the Platron registry with Счета finished."
       #
