@@ -92,7 +92,18 @@ then
    #4. Link registry with Bills and SET inetamount
    if [ $RC_IMP -eq 0 ]
    then 
-      logmsg INFO "CSV successfully loaded into $PG_SRV. Try UPDATE Счета table"
+      logmsg INFO "CSV successfully loaded into $PG_SRV"
+      ORDERS_SET=`awk -F ";" '$1 ~ /[0-9]+/ {s=s $1 ","}END{gsub(/\"/, "", s); printf "%s", substr(s, 1, length(s)-1) }' $PG_CSV` 
+      if [ +$ORDERS_SET != '+' ]
+      then
+         logmsg INFO "Try JOIN Счета and inetpayments tables on ORDERS_SET=$ORDERS_SET"
+         echo "SELECT \"ИнтернетЗаказ\", inetpayments.order_id, \"Интернет\", \"Оплачен\", inetamount FROM \"Счета\", inetpayments WHERE \"ИнтернетЗаказ\" = inetpayments.order_id AND inetpayments.order_id IN ("$ORDERS_SET");" > sql.file
+         cat sql.file
+         $DO psql -h $PG_SRV -U arc_energo -d arc_energo -w -f sql.file
+         rm -f sql.file
+      fi
+
+      logmsg INFO "Try UPDATE Счета table"
       $DO psql -h $PG_SRV -U arc_energo -d arc_energo -w -c "UPDATE Счета SET inetamount = inetpayments.to_pay, Сообщение = 't', inetdt = inetpayments.op_date + inetpayments.op_time FROM inetpayments WHERE ИнтернетЗаказ = inetpayments.order_id AND Интернет = 't' AND Оплачен = 'f' AND inetamount IS NULL;" 
       RC_LINK=$?
       logmsg $RC_LINK "Linking the Platron registry with Счета finished."
