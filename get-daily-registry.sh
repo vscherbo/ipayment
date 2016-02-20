@@ -104,7 +104,7 @@ then
       fi
 
       logmsg INFO "Try UPDATE Счета table"
-      $DO psql -h $PG_SRV -U arc_energo -d arc_energo -w -c "UPDATE Счета SET inetamount = inetpayments.to_pay, Сообщение = 't', inetdt = inetpayments.op_date + inetpayments.op_time FROM inetpayments WHERE ИнтернетЗаказ = inetpayments.order_id AND Интернет = 't' AND Оплачен = 'f' AND inetamount IS NULL;" 
+      $DO psql -h $PG_SRV -U arc_energo -d arc_energo -w -c "UPDATE Счета SET inetamount = inetpayments.to_pay, Сообщение = 't', inetdt = inetpayments.op_date + inetpayments.op_time, ps_id = 1 FROM inetpayments WHERE ИнтернетЗаказ = inetpayments.order_id AND Интернет = 't' AND Оплачен = 'f' AND inetamount IS NULL;" 
       RC_LINK=$?
       logmsg $RC_LINK "Linking the Platron registry with Счета finished."
       #
