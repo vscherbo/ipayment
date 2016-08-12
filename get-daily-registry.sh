@@ -27,7 +27,7 @@ find $CSV_ARCH -type f -mtime +$ARCHIVE_DEPTH -exec rm -f {} \+
 find $LOG_DIR -type f -mtime +$ARCHIVE_DEPTH -exec rm -f {} \+
 
 LOG=$LOG_DIR/`namename $0`.log
-exec 1>$LOG 2>&1
+exec 1>>$LOG 2>&1
 
 PG_COPY_SCRIPT=$CSV_DATA/pg-COPY-registry-$DT.sql
 
@@ -96,6 +96,16 @@ then
       ORDERS_SET=`awk -F ";" '$1 ~ /[0-9]+/ {s=s $1 ","}END{gsub(/\"/, "", s); printf "%s", substr(s, 1, length(s)-1) }' $PG_CSV` 
       if [ +$ORDERS_SET != '+' ]
       then
+         logmsg INFO "Check Счета: ИнтернетЗаказ $ORDERS_SET"
+         echo "SELECT \"ИнтернетЗаказ\", \"Интернет\", \"Оплачен\", inetamount FROM \"Счета\" WHERE \"ИнтернетЗаказ\" IN ("$ORDERS_SET");" > sql.file
+         cat sql.file
+         $DO psql -h $PG_SRV -U arc_energo -d arc_energo -w -f sql.file
+         #
+         logmsg INFO "Check inetpayments: order_id $ORDERS_SET"
+         echo "SELECT * FROM inetpayments WHERE order_id IN ("$ORDERS_SET");" > sql.file
+         cat sql.file
+         $DO psql -h $PG_SRV -U arc_energo -d arc_energo -w -f sql.file
+         #
          logmsg INFO "Try JOIN Счета and inetpayments tables on ORDERS_SET=$ORDERS_SET"
          echo "SELECT \"ИнтернетЗаказ\", inetpayments.order_id, \"Интернет\", \"Оплачен\", inetamount FROM \"Счета\", inetpayments WHERE \"ИнтернетЗаказ\" = inetpayments.order_id AND inetpayments.order_id IN ("$ORDERS_SET");" > sql.file
          cat sql.file
