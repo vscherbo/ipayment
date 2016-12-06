@@ -72,6 +72,7 @@ do
      IMPORT='YES'
   else
      logmsg INFO "The registry $csv contains only header row. Skip it, just archive"
+     cat $csv
      $DO mv  registry*.csv  $CSV_ARCH/
   fi
 done
