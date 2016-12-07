@@ -66,14 +66,14 @@ do
      # PG follows the SQL standard - decimal dot as the delimiter 
      csv_name=`namename $csv`
      PG_CSV=$CSV_DATA/$csv_name-DOT.csv
-     $DO sed 's/,/./g' $csv > $PG_CSV
+     $DO sed -e 's/,/./g' -e 's/$/;/' $csv > $PG_CSV
 
      echo "\COPY inetpayments FROM '"$PG_CSV"' WITH ( FORMAT CSV, HEADER true, DELIMITER ';') ;" >> $PG_COPY_SCRIPT
      IMPORT='YES'
   else
      logmsg INFO "The registry $csv contains only header row. Skip it, just archive"
      cat $csv
-     $DO mv  registry*.csv  $CSV_ARCH/
+     $DO mv  $csv  $CSV_ARCH/
   fi
 done
 IFS=$IFS_BCK
