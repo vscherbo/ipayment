@@ -2,3 +2,4 @@
 !/.fetchmailrc
 !/.gitignore
 test*
+*.csv
